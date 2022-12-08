@@ -1,0 +1,98 @@
+﻿@{
+    ViewData["Title"] = "Решение";
+}
+
+<div class="wrapper"></div>
+
+@* Скрипт вынес в Index просто для удобства просмотра *@
+@section Scripts
+{
+    <script>
+    
+    $.ajax({
+        type: 'GET',
+        url: '@Url.Action("GetPoints")',
+        dataType: 'json',
+        success: function (result) {
+            Draw(result);
+        },
+        error: function (req, status) {
+            console.log(status);
+        }
+    });
+    
+    function Draw(response) {
+        var width = 800;
+        var height = 600;
+    
+        var stage = new Konva.Stage({
+            container: '.wrapper',
+            width: width,
+            height: height
+        });
+    
+        var layer = new Konva.Layer();
+        for (var i = 0; i < response.length; i++) {
+            var group = new Konva.Group();
+            var circle = new Konva.Circle({
+                x: response[i].positionX,
+                y: response[i].positionY,
+                radius: response[i].radius,
+                fill: response[i].color,
+                name: response[i].id + ''
+            })
+            circle.on('dblclick', function (e) {
+                var id = e.currentTarget.attrs.name;
+                $.ajax({
+                    type: 'post',
+                    url: '@Url.Action("DeletePoint")',
+                    datatype: 'json',
+                    data: { Id: id },
+                    success: function (response) {
+                        if (response) {
+                            var shapes = stage.find('.' + id);
+                            for (var i = 0; i < shapes.length; i++) {
+                                shapes[i].destroy();
+                            }
+                            layer.draw();
+                        } else { alert("Error") }
+                    }
+                });
+            })
+            group.add(circle)
+            var starPosition = response[i].positionY + response[i].radius + 5;
+            for (var j = 0; j < response[i].comments.length; j++) {
+                var simpleLabel = new Konva.Label({
+                    x: (response[i].positionX - (response[i].comments[j].text.length * 5.1)),
+                    y: starPosition,
+                    opacity: 0.75,
+                });
+    
+                simpleLabel.add(
+                    new Konva.Tag({
+                        fill: response[i].comments[j].textBackgroundColor,
+                        stroke: 'Grey',
+                        name: response[i].id + ''
+                    })
+                );
+    
+                simpleLabel.add(
+                    new Konva.Text({
+                        text: response[i].comments[j].text,
+                        fontFamily: 'Calibri',
+                        fontSize: 18,
+                        padding: 4,
+                        fill: 'Green',
+                        name: response[i].id + ''
+                    })
+                );
+                group.add(simpleLabel)
+                starPosition += 32;
+            }
+            layer.add(group);
+        }
+        stage.add(layer);
+    }
+    
+    </script>
+}
